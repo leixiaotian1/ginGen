@@ -1,0 +1,11 @@
+module {{.ModulePath}}
+
+go 1.21 // Or your preferred Go version
+
+require (
+	github.com/gin-gonic/gin v1.9.1 // Example version, update as needed
+	github.com/spf13/viper v1.18.2   // For config loading
+)
+
+// Add other indirect dependencies if viper or gin don't pull them all
+// go mod tidy will handle this mostly

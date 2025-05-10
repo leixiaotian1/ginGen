@@ -1,0 +1,54 @@
+package config
+
+import (
+	"fmt"
+	"github.com/spf13/viper"
+)
+
+// Config holds all configuration for the application.
+type Config struct {
+	Server ServerConfig `mapstructure:"server"`
+	// Add other configurations here, e.g., database, redis
+	// DB DBConfig `mapstructure:"db"` // Example for when DB is added
+}
+
+// ServerConfig holds server specific configurations.
+type ServerConfig struct {
+	Host string `mapstructure:"host"`
+	Port int    `mapstructure:"port"`
+}
+
+// DBConfig might be added by `ginGen add mysql`
+// type DBConfig struct {
+//   MySQL MySQLConfig `mapstructure:"mysql"`
+// }
+//
+// type MySQLConfig struct {
+// 	DSN             string `mapstructure:"dsn"`
+// 	MaxIdleConns    int    `mapstructure:"max_idle_conns"`
+// 	MaxOpenConns    int    `mapstructure:"max_open_conns"`
+// 	ConnMaxLifetime int    `mapstructure:"conn_max_lifetime"` // in seconds
+// }
+
+
+// LoadConfig reads configuration from file or environment variables.
+func LoadConfig(path string) (config *Config, err error) {
+	viper.AddConfigPath(path)        // Path to look for the config file in
+	viper.AddConfigPath("../../configs") // Also look in configs/ subdirectory
+	viper.SetConfigName("config")    // Name of config file (without extension)
+	viper.SetConfigType("yaml")      // REQUIRED if the config file does not have the extension in the name
+
+	viper.AutomaticEnv() // Read in environment variables that match
+
+	err = viper.ReadInConfig() // Find and read the config file
+	if err != nil {            // Handle errors reading the config file
+		return nil, fmt.Errorf("fatal error config file: %w", err)
+	}
+
+	err = viper.Unmarshal(&config)
+	if err != nil {
+		return nil, fmt.Errorf("unable to decode into struct: %w", err)
+	}
+
+	return
+}

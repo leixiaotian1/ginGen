@@ -1,0 +1,21 @@
+package handler
+
+import (
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+)
+
+// Ping handler for health check
+func Ping(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"message": "pong",
+	})
+}
+
+// Hello example handler (can be removed or modified)
+// func Hello(c *gin.Context) {
+// 	c.JSON(http.StatusOK, gin.H{
+// 		"message": "Hello from GinGen project!",
+// 	})
+// }

@@ -1,0 +1,57 @@
+package clients
+
+import (
+	"fmt"
+	"log"
+	"time"
+
+	"{{.ModulePath}}/internal/config" // To use the MySQLConfig struct
+
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
+)
+
+// NewGORMClient creates and returns a new GORM database client.
+func NewGORMClient(cfg config.MySQLConfig) (*gorm.DB, error) {
+	// Customize GORM logger (optional)
+	gormLogger := logger.New(
+		log.New(log.Writer(), "\r\n", log.LstdFlags), // io writer
+		logger.Config{
+			SlowThreshold:             time.Second, // Slow SQL threshold
+			LogLevel:                  logger.Info, // Log level (Silent, Error, Warn, Info)
+			IgnoreRecordNotFoundError: true,        // Ignore ErrRecordNotFound error for logger
+			Colorful:                  true,        // Disable color
+		},
+	)
+
+	db, err := gorm.Open(mysql.Open(cfg.DSN), &gorm.Config{
+		Logger: gormLogger,
+		// NamingStrategy: schema.NamingStrategy{
+		// 	SingularTable: true, // use singular table name, e.g., user for `User` model
+		// },
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to database: %w", err)
+	}
+
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get underlying sql.DB: %w", err)
+	}
+
+	// Set connection pool settings
+	if cfg.MaxIdleConns > 0 {
+		sqlDB.SetMaxIdleConns(cfg.MaxIdleConns)
+	}
+	if cfg.MaxOpenConns > 0 {
+		sqlDB.SetMaxOpenConns(cfg.MaxOpenConns)
+	}
+	if cfg.ConnMaxLifetime > 0 {
+		sqlDB.SetConnMaxLifetime(time.Duration(cfg.ConnMaxLifetime) * time.Second)
+	}
+
+	log.Println("Successfully connected to MySQL database!")
+	return db, nil
+}

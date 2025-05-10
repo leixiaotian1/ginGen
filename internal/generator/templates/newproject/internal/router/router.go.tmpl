@@ -1,0 +1,21 @@
+package router
+
+import (
+	"{{.ModulePath}}/internal/config"
+	"{{.ModulePath}}/internal/handler"
+	"github.com/gin-gonic/gin"
+)
+
+// SetupRoutes configures the routes for the application.
+func SetupRoutes(r *gin.Engine, cfg *config.Config) {
+	// Basic health check
+	r.GET("/ping", handler.Ping)
+
+	// Example group: /api/v1
+	// v1 := r.Group("/api/v1")
+	// {
+	// 	v1.GET("/hello", handler.Hello)
+	// }
+
+	// TODO: Add more routes here
+}

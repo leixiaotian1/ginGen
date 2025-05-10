@@ -1,0 +1,23 @@
+package config
+
+// This file is typically merged or referenced by the main internal/config/config.go
+
+// DBConfig holds all database configurations.
+// It's expected to be part of the main Config struct.
+// Example in main config:
+// type Config struct {
+//    ...
+//    DB DBConfig `mapstructure:"db"`
+// }
+type DBConfig struct {
+	MySQL MySQLConfig `mapstructure:"mysql"`
+	// Add other database types like PostgreSQL here if needed
+}
+
+// MySQLConfig holds MySQL specific configurations.
+type MySQLConfig struct {
+	DSN             string `mapstructure:"dsn"`
+	MaxIdleConns    int    `mapstructure:"max_idle_conns"`
+	MaxOpenConns    int    `mapstructure:"max_open_conns"`
+	ConnMaxLifetime int    `mapstructure:"conn_max_lifetime"` // in seconds (time.Duration could also be used with custom unmarshalling)
+}

@@ -1,0 +1,32 @@
+package main
+
+import (
+	"fmt"
+	"log"
+
+	"{{.ModulePath}}/internal/config"
+	"{{.ModulePath}}/internal/router"
+	"github.com/gin-gonic/gin"
+)
+
+func main() {
+	// Load application configuration
+	appConfig, err := config.LoadConfig("../../internal/config") // Load from current directory (where configs/ is)
+	if err != nil {
+		log.Fatalf("Failed to load configuration: %v", err)
+	}
+
+	// Setup Gin router
+	// gin.SetMode(gin.ReleaseMode) // Uncomment for production
+	r := gin.Default()
+
+	// Setup routes
+	router.SetupRoutes(r, appConfig) // Pass config if needed by handlers
+
+	// Start server
+	address := fmt.Sprintf("%s:%d", appConfig.Server.Host, appConfig.Server.Port)
+	log.Printf("Starting server on %s", address)
+	if err := r.Run(address); err != nil {
+		log.Fatalf("Failed to start server: %v", err)
+	}
+}
