@@ -52,6 +52,7 @@ ginGen add <feature>
 cd myapp
 ginGen add mysql
 ```
+![演示动画](./ginGen.gif)
 
 ## 项目结构（生成示例）
 ```
