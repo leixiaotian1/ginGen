@@ -1,5 +1,3 @@
-[![Build](https://github.com/leixiaotian1/ginGen/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/leixiaotian1/ginGen/actions/workflows/ci.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/leixiaotian1/ginGen?cache)](https://goreportcard.com/report/github.com/leixiaotian1/ginGen)
 [![GoDoc](https://pkg.go.dev/badge/github.com/leixiaotian1/ginGen.svg)](https://pkg.go.dev/github.com/leixiaotian1/ginGen)
 ![Stars](https://img.shields.io/github/stars/leixiaotian1/ginGen)
 ![Forks](https://img.shields.io/github/forks/leixiaotian1/ginGen)
