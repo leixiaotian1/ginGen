@@ -7,8 +7,9 @@
 # ginGen 🚀
 
 一个极简的Gin框架脚手架工具，快速生成标准项目结构并集成常用组件。
-![图标](static/ginGen.png)
 
+
+<img src="static/ginGen.png" style="width:200px; height:auto;" />
 
 ## 特性
 
