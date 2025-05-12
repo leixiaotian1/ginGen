@@ -2,12 +2,13 @@ package generator
 
 import (
 	"fmt"
-	"ginGen/internal/utils"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
 	"text/template"
+
+	"github.com/leixiaotian1/ginGen/internal/utils"
 )
 
 // TemplateData holds data for template execution.

@@ -1,4 +1,4 @@
-[![GoDoc](https://pkg.go.dev/badge/github.com/leixiaotian1/ginGen.svg)](https://pkg.go.dev/github.com/leixiaotian1/ginGen)
+[![GoDoc](https://pkg.go.dev/badge/github.com/leixiaotian1/ginGen/.svg)](https://pkg.go.dev/github.com/leixiaotian1/ginGen/)
 ![Stars](https://img.shields.io/github/stars/leixiaotian1/ginGen)
 ![Forks](https://img.shields.io/github/forks/leixiaotian1/ginGen)
 
@@ -26,7 +26,7 @@
 
 ### 安装命令
 ```bash
-go install https://github.com/leixiaotian1/ginGen@latest
+go install https://github.com/leixiaotian1/ginGen/@latest
 ```
 
 确保`$GOPATH/bin`已添加到PATH环境变量中

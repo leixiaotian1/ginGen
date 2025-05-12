@@ -1,6 +1,6 @@
 package main
 
-import "ginGen/cmd"
+import cmd "github.com/leixiaotian1/ginGen/cmd"
 
 func main() {
 	cmd.Execute()

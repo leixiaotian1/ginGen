@@ -2,11 +2,12 @@ package cmd
 
 import (
 	"fmt"
-	"ginGen/internal/generator"
-	"ginGen/internal/utils"
 	"log"
 	"os"
 	"path/filepath"
+
+	"github.com/leixiaotian1/ginGen/internal/generator"
+	"github.com/leixiaotian1/ginGen/internal/utils"
 
 	"github.com/spf13/cobra"
 )

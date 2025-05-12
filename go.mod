@@ -1,4 +1,4 @@
-module ginGen
+module github.com/leixiaotian1/ginGen
 
 go 1.24.1
 
