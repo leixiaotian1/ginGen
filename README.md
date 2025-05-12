@@ -26,7 +26,7 @@
 
 ### 安装命令
 ```bash
-go install github.com/leixiaotian1/ginGen
+go install github.com/leixiaotian1/ginGen@latest
 ```
 
 确保`$GOPATH/bin`已添加到PATH环境变量中
