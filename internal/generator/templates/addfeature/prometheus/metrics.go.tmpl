@@ -1,0 +1,69 @@
+package metrics
+
+import (
+	"strconv"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+)
+
+var (
+	// HTTP request metrics
+	httpRequestsTotal = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "http_requests_total",
+			Help: "Total number of HTTP requests",
+		},
+		[]string{"method", "endpoint", "status"},
+	)
+
+	httpRequestDuration = promauto.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "http_request_duration_seconds",
+			Help:    "HTTP request duration in seconds",
+			Buckets: prometheus.DefBuckets,
+		},
+		[]string{"method", "endpoint"},
+	)
+
+	httpRequestSize = promauto.NewSummaryVec(
+		prometheus.SummaryOpts{
+			Name: "http_request_size_bytes",
+			Help: "HTTP request size in bytes",
+		},
+		[]string{"method", "endpoint"},
+	)
+)
+
+// PrometheusMiddleware collects metrics for HTTP requests
+func PrometheusMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+		method := c.Request.Method
+		path := c.FullPath()
+		if path == "" {
+			path = c.Request.URL.Path
+		}
+
+		// Process request
+		c.Next()
+
+		// Record metrics
+		duration := time.Since(start).Seconds()
+		status := strconv.Itoa(c.Writer.Status())
+		size := float64(c.Writer.Size())
+
+		httpRequestsTotal.WithLabelValues(method, path, status).Inc()
+		httpRequestDuration.WithLabelValues(method, path).Observe(duration)
+		httpRequestSize.WithLabelValues(method, path).Observe(size)
+	}
+}
+
+// SetupMetrics sets up Prometheus metrics endpoint
+func SetupMetrics(r *gin.Engine) {
+	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
+}
+

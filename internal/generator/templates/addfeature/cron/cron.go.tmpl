@@ -1,0 +1,44 @@
+package cron
+
+import (
+	"{{.ModulePath}}/internal/logger"
+	"github.com/robfig/cron/v3"
+	"go.uber.org/zap"
+)
+
+var c *cron.Cron
+
+// Init initializes the cron scheduler
+func Init() {
+	c = cron.New(cron.WithSeconds())
+	c.Start()
+	logger.GetLogger().Info("Cron scheduler initialized")
+}
+
+// AddJob adds a cron job
+func AddJob(spec string, cmd func()) (cron.EntryID, error) {
+	return c.AddFunc(spec, cmd)
+}
+
+// AddJobWithName adds a cron job with a name for logging
+func AddJobWithName(name, spec string, cmd func()) (cron.EntryID, error) {
+	return c.AddFunc(spec, func() {
+		logger.GetLogger().Info("Running cron job", zap.String("name", name))
+		cmd()
+		logger.GetLogger().Info("Cron job completed", zap.String("name", name))
+	})
+}
+
+// Stop stops the cron scheduler
+func Stop() {
+	if c != nil {
+		c.Stop()
+		logger.GetLogger().Info("Cron scheduler stopped")
+	}
+}
+
+// Example: Add a job that runs every minute
+// cron.AddJobWithName("cleanup", "0 * * * * *", func() {
+//     // Your cleanup logic here
+// })
+

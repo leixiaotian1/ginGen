@@ -1,0 +1,10 @@
+package config
+
+// JWTConfig holds JWT authentication configurations.
+type JWTConfig struct {
+	SecretKey     string `mapstructure:"secret_key"`     // JWT secret key
+	ExpireHours   int    `mapstructure:"expire_hours"`    // Token expiration time in hours
+	RefreshHours  int    `mapstructure:"refresh_hours"` // Refresh token expiration time in hours
+	Issuer        string `mapstructure:"issuer"`         // JWT issuer
+}
+

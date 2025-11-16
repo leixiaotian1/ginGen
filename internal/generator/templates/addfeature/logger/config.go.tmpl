@@ -1,0 +1,14 @@
+package config
+
+// LoggerConfig holds logger configurations.
+type LoggerConfig struct {
+	Level      string `mapstructure:"level"`       // Log level: debug, info, warn, error
+	Format     string `mapstructure:"format"`      // Log format: json, text
+	Output     string `mapstructure:"output"`      // Output: stdout, file, both
+	FilePath   string `mapstructure:"file_path"`   // Log file path (if output includes file)
+	MaxSize    int    `mapstructure:"max_size"`    // Max size in MB before rotation
+	MaxBackups int    `mapstructure:"max_backups"` // Max number of backup files
+	MaxAge     int    `mapstructure:"max_age"`     // Max age in days
+	Compress   bool   `mapstructure:"compress"`    // Compress rotated files
+}
+

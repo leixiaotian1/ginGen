@@ -1,0 +1,101 @@
+package clients
+
+import (
+	"crypto/tls"
+	"fmt"
+	"log"
+
+	"{{.ModulePath}}/internal/config"
+
+	"github.com/IBM/sarama"
+)
+
+// NewKafkaProducer creates and returns a new Kafka producer client.
+func NewKafkaProducer(cfg config.KafkaConfig) (sarama.SyncProducer, error) {
+	config := sarama.NewConfig()
+	config.Producer.Return.Successes = true
+	config.Producer.RequiredAcks = sarama.WaitForAll
+	config.Producer.Retry.Max = 5
+
+	// Configure SASL if enabled
+	if cfg.EnableSASL {
+		config.Net.SASL.Enable = true
+		config.Net.SASL.Mechanism = sarama.SASLTypePlaintext
+		if cfg.SASLMechanism != "" {
+			config.Net.SASL.Mechanism = sarama.SASLMechanism(cfg.SASLMechanism)
+		}
+		config.Net.SASL.User = cfg.SASLUsername
+		config.Net.SASL.Password = cfg.SASLPassword
+	}
+
+	// Configure TLS if enabled
+	if cfg.EnableTLS {
+		tlsConfig := &tls.Config{
+			InsecureSkipVerify: false,
+		}
+		if cfg.TLSCertFile != "" && cfg.TLSKeyFile != "" {
+			cert, err := tls.LoadX509KeyPair(cfg.TLSCertFile, cfg.TLSKeyFile)
+			if err != nil {
+				return nil, fmt.Errorf("failed to load TLS certificate: %w", err)
+			}
+			tlsConfig.Certificates = []tls.Certificate{cert}
+		}
+		if cfg.TLSCAFile != "" {
+			// Load CA file if needed
+			// This is a simplified version, you may need to add proper CA loading
+		}
+		config.Net.TLS.Enable = true
+		config.Net.TLS.Config = tlsConfig
+	}
+
+	producer, err := sarama.NewSyncProducer(cfg.Brokers, config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Kafka producer: %w", err)
+	}
+
+	log.Println("Successfully created Kafka producer!")
+	return producer, nil
+}
+
+// NewKafkaConsumer creates and returns a new Kafka consumer client.
+func NewKafkaConsumer(cfg config.KafkaConfig) (sarama.ConsumerGroup, error) {
+	config := sarama.NewConfig()
+	config.Consumer.Group.Rebalance.Strategy = sarama.NewBalanceStrategyRoundRobin()
+	config.Consumer.Offsets.Initial = sarama.OffsetOldest
+
+	// Configure SASL if enabled
+	if cfg.EnableSASL {
+		config.Net.SASL.Enable = true
+		config.Net.SASL.Mechanism = sarama.SASLTypePlaintext
+		if cfg.SASLMechanism != "" {
+			config.Net.SASL.Mechanism = sarama.SASLMechanism(cfg.SASLMechanism)
+		}
+		config.Net.SASL.User = cfg.SASLUsername
+		config.Net.SASL.Password = cfg.SASLPassword
+	}
+
+	// Configure TLS if enabled
+	if cfg.EnableTLS {
+		tlsConfig := &tls.Config{
+			InsecureSkipVerify: false,
+		}
+		if cfg.TLSCertFile != "" && cfg.TLSKeyFile != "" {
+			cert, err := tls.LoadX509KeyPair(cfg.TLSCertFile, cfg.TLSKeyFile)
+			if err != nil {
+				return nil, fmt.Errorf("failed to load TLS certificate: %w", err)
+			}
+			tlsConfig.Certificates = []tls.Certificate{cert}
+		}
+		config.Net.TLS.Enable = true
+		config.Net.TLS.Config = tlsConfig
+	}
+
+	consumer, err := sarama.NewConsumerGroup(cfg.Brokers, cfg.GroupID, config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Kafka consumer: %w", err)
+	}
+
+	log.Println("Successfully created Kafka consumer!")
+	return consumer, nil
+}
+

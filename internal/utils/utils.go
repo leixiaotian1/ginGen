@@ -20,6 +20,16 @@ func RunCommand(workingDir string, name string, args ...string) error {
 	return cmd.Run()
 }
 
+// RunCommandSilent executes a shell command silently (for web interface).
+func RunCommandSilent(workingDir string, name string, args ...string) error {
+	cmd := exec.Command(name, args...)
+	if workingDir != "" {
+		cmd.Dir = workingDir
+	}
+	// Output is discarded for silent execution
+	return cmd.Run()
+}
+
 // CreateDirs creates necessary directories.
 func CreateDirs(basePath string, dirs ...string) error {
 	for _, dir := range dirs {

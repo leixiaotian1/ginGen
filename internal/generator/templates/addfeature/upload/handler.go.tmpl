@@ -1,0 +1,58 @@
+package handler
+
+import (
+	"net/http"
+
+	"{{.ModulePath}}/internal/upload"
+	"github.com/gin-gonic/gin"
+)
+
+// UploadFile handles single file upload
+// @Summary Upload file
+// @Description Upload a single file
+// @Tags upload
+// @Accept multipart/form-data
+// @Produce json
+// @Param file formData file true "File to upload"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Router /api/upload [post]
+func UploadFile(c *gin.Context) {
+	cfg := upload.DefaultUploadConfig()
+	filepath, err := upload.SaveFile(c, "file", cfg)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":  "File uploaded successfully",
+		"filepath": filepath,
+		"url":      cfg.PublicURL + "/" + filepath,
+	})
+}
+
+// UploadMultipleFiles handles multiple file upload
+// @Summary Upload multiple files
+// @Description Upload multiple files
+// @Tags upload
+// @Accept multipart/form-data
+// @Produce json
+// @Param files formData file true "Files to upload"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Router /api/upload/multiple [post]
+func UploadMultipleFiles(c *gin.Context) {
+	cfg := upload.DefaultUploadConfig()
+	files, err := upload.SaveMultipleFiles(c, "files", cfg)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Files uploaded successfully",
+		"files":   files,
+	})
+}
+

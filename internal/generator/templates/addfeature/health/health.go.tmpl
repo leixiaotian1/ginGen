@@ -1,0 +1,79 @@
+package handler
+
+import (
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+)
+
+// HealthResponse represents health check response
+type HealthResponse struct {
+	Status  string            `json:"status"`
+	Details map[string]string `json:"details,omitempty"`
+}
+
+// HealthCheck handles basic health check
+// @Summary Health check
+// @Description Check if the service is running
+// @Tags health
+// @Produce json
+// @Success 200 {object} HealthResponse
+// @Router /health [get]
+func HealthCheck(c *gin.Context) {
+	c.JSON(http.StatusOK, HealthResponse{
+		Status: "ok",
+	})
+}
+
+// ReadinessCheck handles readiness check
+// @Summary Readiness check
+// @Description Check if the service is ready to accept traffic
+// @Tags health
+// @Produce json
+// @Success 200 {object} HealthResponse
+// @Failure 503 {object} HealthResponse
+// @Router /ready [get]
+func ReadinessCheck(c *gin.Context) {
+	details := make(map[string]string)
+	allReady := true
+
+	// Check database connection if available
+	// TODO: Add actual database health check
+	// if db != nil {
+	//     if err := db.Ping(); err != nil {
+	//         details["database"] = "unhealthy"
+	//         allReady = false
+	//     } else {
+	//         details["database"] = "healthy"
+	//     }
+	// }
+
+	// Check Redis connection if available
+	// TODO: Add actual Redis health check
+
+	if allReady {
+		c.JSON(http.StatusOK, HealthResponse{
+			Status:  "ready",
+			Details: details,
+		})
+	} else {
+		c.JSON(http.StatusServiceUnavailable, HealthResponse{
+			Status:  "not ready",
+			Details: details,
+		})
+	}
+}
+
+// LivenessCheck handles liveness check
+// @Summary Liveness check
+// @Description Check if the service is alive
+// @Tags health
+// @Produce json
+// @Success 200 {object} HealthResponse
+// @Router /live [get]
+func LivenessCheck(c *gin.Context) {
+	c.JSON(http.StatusOK, HealthResponse{
+		Status: "alive",
+	})
+}
+

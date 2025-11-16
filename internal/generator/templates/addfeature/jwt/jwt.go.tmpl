@@ -1,0 +1,83 @@
+package jwt
+
+import (
+	"errors"
+	"time"
+
+	"{{.ModulePath}}/internal/config"
+	"github.com/golang-jwt/jwt/v5"
+)
+
+var jwtSecret []byte
+
+// Claims represents JWT claims
+type Claims struct {
+	UserID   string `json:"user_id"`
+	Username string `json:"username"`
+	jwt.RegisteredClaims
+}
+
+// Init initializes JWT with configuration
+func Init(cfg config.JWTConfig) {
+	jwtSecret = []byte(cfg.SecretKey)
+}
+
+// GenerateToken generates a new JWT token
+func GenerateToken(userID, username string, cfg config.JWTConfig) (string, error) {
+	now := time.Now()
+	expireTime := now.Add(time.Duration(cfg.ExpireHours) * time.Hour)
+
+	claims := Claims{
+		UserID:   userID,
+		Username: username,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(expireTime),
+			IssuedAt:  jwt.NewNumericDate(now),
+			NotBefore: jwt.NewNumericDate(now),
+			Issuer:    cfg.Issuer,
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(jwtSecret)
+}
+
+// GenerateRefreshToken generates a refresh token
+func GenerateRefreshToken(userID string, cfg config.JWTConfig) (string, error) {
+	now := time.Now()
+	expireTime := now.Add(time.Duration(cfg.RefreshHours) * time.Hour)
+
+	claims := Claims{
+		UserID: userID,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(expireTime),
+			IssuedAt:  jwt.NewNumericDate(now),
+			NotBefore: jwt.NewNumericDate(now),
+			Issuer:    cfg.Issuer,
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(jwtSecret)
+}
+
+// ValidateToken validates and parses a JWT token
+func ValidateToken(tokenString string) (*Claims, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, errors.New("unexpected signing method")
+		}
+		return jwtSecret, nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if claims, ok := token.Claims.(*Claims); ok && token.Valid {
+		return claims, nil
+	}
+
+	return nil, errors.New("invalid token")
+}
+

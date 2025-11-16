@@ -1,0 +1,15 @@
+package swagger
+
+import (
+	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+)
+
+// SetupSwagger sets up Swagger documentation routes
+// Note: Make sure to run 'swag init -g cmd/server/main.go' first to generate docs
+func SetupSwagger(r *gin.Engine) {
+	// Swagger UI
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+}
+

@@ -1,0 +1,17 @@
+package config
+
+// KafkaConfig holds Kafka specific configurations.
+type KafkaConfig struct {
+	Brokers       []string `mapstructure:"brokers"`        // Kafka broker addresses, e.g., ["localhost:9092"]
+	GroupID       string   `mapstructure:"group_id"`      // Consumer group ID
+	ClientID      string   `mapstructure:"client_id"`     // Client ID for Kafka client
+	EnableSASL    bool     `mapstructure:"enable_sasl"`   // Enable SASL authentication
+	SASLMechanism string   `mapstructure:"sasl_mechanism"` // SASL mechanism (PLAIN, SCRAM-SHA-256, etc.)
+	SASLUsername  string   `mapstructure:"sasl_username"` // SASL username
+	SASLPassword  string   `mapstructure:"sasl_password"` // SASL password
+	EnableTLS     bool     `mapstructure:"enable_tls"`   // Enable TLS
+	TLSCertFile   string   `mapstructure:"tls_cert_file"` // TLS certificate file path
+	TLSKeyFile    string   `mapstructure:"tls_key_file"`  // TLS key file path
+	TLSCAFile     string   `mapstructure:"tls_ca_file"`   // TLS CA file path
+}
+

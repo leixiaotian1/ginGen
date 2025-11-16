@@ -1,0 +1,96 @@
+package middleware
+
+import (
+	"net/http"
+	"sync"
+	"time"
+
+	"github.com/gin-gonic/gin"
+)
+
+// RateLimiter implements a simple token bucket rate limiter
+type RateLimiter struct {
+	visitors map[string]*Visitor
+	mu       sync.RWMutex
+	rate     int           // requests per duration
+	duration time.Duration // time window
+}
+
+// Visitor represents a visitor with token bucket
+type Visitor struct {
+	tokens     int
+	lastSeen   time.Time
+	lastRefill time.Time
+}
+
+// NewRateLimiter creates a new rate limiter
+func NewRateLimiter(rate int, duration time.Duration) *RateLimiter {
+	rl := &RateLimiter{
+		visitors: make(map[string]*Visitor),
+		rate:     rate,
+		duration: duration,
+	}
+
+	// Clean up old visitors periodically
+	go rl.cleanupVisitors()
+	return rl
+}
+
+// RateLimitMiddleware returns a rate limiting middleware
+func RateLimitMiddleware(rate int, duration time.Duration) gin.HandlerFunc {
+	limiter := NewRateLimiter(rate, duration)
+
+	return func(c *gin.Context) {
+		ip := c.ClientIP()
+		limiter.mu.Lock()
+		visitor, exists := limiter.visitors[ip]
+
+		if !exists {
+			visitor = &Visitor{
+				tokens:     limiter.rate,
+				lastSeen:   time.Now(),
+				lastRefill: time.Now(),
+			}
+			limiter.visitors[ip] = visitor
+		}
+
+		// Refill tokens
+		now := time.Now()
+		elapsed := now.Sub(visitor.lastRefill)
+		if elapsed >= limiter.duration {
+			visitor.tokens = limiter.rate
+			visitor.lastRefill = now
+		}
+
+		// Check if tokens available
+		if visitor.tokens <= 0 {
+			limiter.mu.Unlock()
+			c.JSON(http.StatusTooManyRequests, gin.H{
+				"error": "Rate limit exceeded. Please try again later.",
+			})
+			c.Abort()
+			return
+		}
+
+		visitor.tokens--
+		visitor.lastSeen = now
+		limiter.mu.Unlock()
+
+		c.Next()
+	}
+}
+
+func (rl *RateLimiter) cleanupVisitors() {
+	for {
+		time.Sleep(time.Minute)
+		rl.mu.Lock()
+		now := time.Now()
+		for ip, visitor := range rl.visitors {
+			if now.Sub(visitor.lastSeen) > 3*time.Hour {
+				delete(rl.visitors, ip)
+			}
+		}
+		rl.mu.Unlock()
+	}
+}
+

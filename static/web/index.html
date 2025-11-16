@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ginGen - Gin 项目生成器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .form-group {
+            margin-bottom: 30px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 0.95em;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group small {
+            display: block;
+            margin-top: 5px;
+            color: #666;
+            font-size: 0.85em;
+        }
+
+        .features-section {
+            margin-top: 30px;
+        }
+
+        .features-section h2 {
+            font-size: 1.3em;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .feature-category {
+            margin-bottom: 25px;
+        }
+
+        .feature-category h3 {
+            font-size: 1em;
+            color: #666;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: flex-start;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #fafafa;
+        }
+
+        .feature-item:hover {
+            border-color: #667eea;
+            background: #f5f7ff;
+            transform: translateX(5px);
+        }
+
+        .feature-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-right: 15px;
+            margin-top: 2px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .feature-item label {
+            flex: 1;
+            cursor: pointer;
+            margin: 0;
+        }
+
+        .feature-item .feature-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .feature-item .feature-desc {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .feature-item.selected {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .generate-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 30px;
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .generate-btn:active {
+            transform: translateY(0);
+        }
+
+        .generate-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .error.active {
+            display: block;
+        }
+
+        .success {
+            background: #efe;
+            color: #3c3;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .success.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 ginGen</h1>
+            <p>快速生成 Gin 项目，选择你需要的模块</p>
+        </div>
+        
+        <div class="content">
+            <form id="projectForm">
+                <div class="form-group">
+                    <label for="projectName">项目名称 *</label>
+                    <input type="text" id="projectName" name="projectName" required 
+                           placeholder="例如: myapp" 
+                           pattern="[a-zA-Z0-9_-]+"
+                           title="只能包含字母、数字、下划线和连字符">
+                    <small>项目目录名称，只能包含字母、数字、下划线和连字符</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="modulePath">Go Module 路径 *</label>
+                    <input type="text" id="modulePath" name="modulePath" required 
+                           placeholder="例如: github.com/username/myapp">
+                    <small>Go 模块路径，通常格式为 github.com/username/projectname</small>
+                </div>
+
+                <div class="features-section">
+                    <h2>选择功能模块</h2>
+                    <div id="featuresContainer">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            <p>加载可用模块...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="generate-btn" id="generateBtn">
+                    生成并下载项目
+                </button>
+
+                <div class="loading" id="generatingLoader">
+                    <div class="spinner"></div>
+                    <p>正在生成项目，请稍候...</p>
+                </div>
+
+                <div class="error" id="errorMsg"></div>
+                <div class="success" id="successMsg"></div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let availableFeatures = [];
+
+        // Load available features on page load
+        async function loadFeatures() {
+            try {
+                const response = await fetch('/api/features');
+                const data = await response.json();
+                availableFeatures = data.features || [];
+                renderFeatures();
+            } catch (error) {
+                console.error('Failed to load features:', error);
+                document.getElementById('featuresContainer').innerHTML = 
+                    '<p style="color: #c33;">无法加载功能模块列表，请刷新页面重试。</p>';
+            }
+        }
+
+        // Render features grouped by category
+        function renderFeatures() {
+            const container = document.getElementById('featuresContainer');
+            
+            if (availableFeatures.length === 0) {
+                container.innerHTML = '<p style="color: #666;">暂无可用模块</p>';
+                return;
+            }
+
+            // Group features by category
+            const categories = {};
+            availableFeatures.forEach(feature => {
+                const cat = feature.category || '其他';
+                if (!categories[cat]) {
+                    categories[cat] = [];
+                }
+                categories[cat].push(feature);
+            });
+
+            let html = '';
+            for (const [category, features] of Object.entries(categories)) {
+                html += `<div class="feature-category">`;
+                html += `<h3>${category}</h3>`;
+                
+                features.forEach(feature => {
+                    html += `
+                        <div class="feature-item" data-feature-id="${feature.id}">
+                            <input type="checkbox" id="feature_${feature.id}" 
+                                   name="features" value="${feature.id}">
+                            <label for="feature_${feature.id}">
+                                <div class="feature-name">${feature.name}</div>
+                                <div class="feature-desc">${feature.description}</div>
+                            </label>
+                        </div>
+                    `;
+                });
+                
+                html += `</div>`;
+            }
+
+            container.innerHTML = html;
+
+            // Add click handlers for feature items
+            document.querySelectorAll('.feature-item').forEach(item => {
+                const checkbox = item.querySelector('input[type="checkbox"]');
+                
+                item.addEventListener('click', (e) => {
+                    if (e.target !== checkbox) {
+                        checkbox.checked = !checkbox.checked;
+                    }
+                    updateFeatureItemState(item, checkbox.checked);
+                });
+
+                checkbox.addEventListener('change', () => {
+                    updateFeatureItemState(item, checkbox.checked);
+                });
+            });
+        }
+
+        function updateFeatureItemState(item, selected) {
+            if (selected) {
+                item.classList.add('selected');
+            } else {
+                item.classList.remove('selected');
+            }
+        }
+
+        // Handle form submission
+        document.getElementById('projectForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const projectName = document.getElementById('projectName').value.trim();
+            const modulePath = document.getElementById('modulePath').value.trim();
+            const features = Array.from(document.querySelectorAll('input[name="features"]:checked'))
+                .map(cb => cb.value);
+
+            // Validation
+            if (!projectName) {
+                showError('请输入项目名称');
+                return;
+            }
+
+            if (!modulePath) {
+                showError('请输入 Go Module 路径');
+                return;
+            }
+
+            // Hide previous messages
+            hideMessages();
+
+            // Show loading state
+            document.getElementById('generateBtn').disabled = true;
+            document.getElementById('generatingLoader').classList.add('active');
+
+            try {
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        projectName,
+                        modulePath,
+                        features,
+                    }),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || '生成项目失败');
+                }
+
+                // Get the blob and create download link
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${projectName}.zip`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                showSuccess(`项目 ${projectName} 生成成功！正在下载...`);
+            } catch (error) {
+                console.error('Generation error:', error);
+                showError(error.message || '生成项目时发生错误，请重试');
+            } finally {
+                document.getElementById('generateBtn').disabled = false;
+                document.getElementById('generatingLoader').classList.remove('active');
+            }
+        });
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMsg');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('active');
+            document.getElementById('successMsg').classList.remove('active');
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.getElementById('successMsg');
+            successDiv.textContent = message;
+            successDiv.classList.add('active');
+            document.getElementById('errorMsg').classList.remove('active');
+        }
+
+        function hideMessages() {
+            document.getElementById('errorMsg').classList.remove('active');
+            document.getElementById('successMsg').classList.remove('active');
+        }
+
+        // Load features when page loads
+        loadFeatures();
+    </script>
+</body>
+</html>
+

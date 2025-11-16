@@ -1,0 +1,48 @@
+package clients
+
+import (
+	"context"
+	"fmt"
+	"log"
+	"time"
+
+	"{{.ModulePath}}/internal/config"
+
+	"github.com/redis/go-redis/v9"
+)
+
+// NewRedisClient creates and returns a new Redis client.
+func NewRedisClient(cfg config.RedisConfig) (*redis.Client, error) {
+	opts := &redis.Options{
+		Addr:         cfg.Addr,
+		Password:     cfg.Password,
+		DB:           cfg.DB,
+		PoolSize:     cfg.PoolSize,
+		MinIdleConns: cfg.MinIdleConns,
+	}
+
+	// Set timeouts if configured
+	if cfg.DialTimeout > 0 {
+		opts.DialTimeout = time.Duration(cfg.DialTimeout) * time.Second
+	}
+	if cfg.ReadTimeout > 0 {
+		opts.ReadTimeout = time.Duration(cfg.ReadTimeout) * time.Second
+	}
+	if cfg.WriteTimeout > 0 {
+		opts.WriteTimeout = time.Duration(cfg.WriteTimeout) * time.Second
+	}
+
+	client := redis.NewClient(opts)
+
+	// Test connection
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := client.Ping(ctx).Err(); err != nil {
+		return nil, fmt.Errorf("failed to connect to Redis: %w", err)
+	}
+
+	log.Println("Successfully connected to Redis!")
+	return client, nil
+}
+

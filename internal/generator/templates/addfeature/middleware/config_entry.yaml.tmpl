@@ -1,0 +1,10 @@
+# Middleware configuration
+middleware:
+  cors:
+    allow_origins: ["*"]  # Change to specific origins in production
+    allow_methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]
+    allow_headers: ["Origin", "Content-Length", "Content-Type", "Authorization"]
+  rate_limit:
+    requests_per_minute: 60  # Adjust based on your needs
+    burst: 10  # Allow burst of requests
+

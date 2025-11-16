@@ -1,0 +1,99 @@
+package logger
+
+import (
+	"os"
+
+	"{{.ModulePath}}/internal/config"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	"gopkg.in/natefinch/lumberjack.v2"
+)
+
+var Logger *zap.Logger
+
+// Init initializes the logger with configuration
+func Init(cfg config.LoggerConfig) error {
+	var core zapcore.Core
+	var cores []zapcore.Core
+
+	// Encoder config
+	encoderConfig := zap.NewProductionEncoderConfig()
+	encoderConfig.TimeKey = "timestamp"
+	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	encoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
+
+	var encoder zapcore.Encoder
+	if cfg.Format == "json" {
+		encoder = zapcore.NewJSONEncoder(encoderConfig)
+	} else {
+		encoder = zapcore.NewConsoleEncoder(encoderConfig)
+	}
+
+	// Log level
+	var level zapcore.Level
+	switch cfg.Level {
+	case "debug":
+		level = zapcore.DebugLevel
+	case "info":
+		level = zapcore.InfoLevel
+	case "warn":
+		level = zapcore.WarnLevel
+	case "error":
+		level = zapcore.ErrorLevel
+	default:
+		level = zapcore.InfoLevel
+	}
+
+	// Output to stdout
+	if cfg.Output == "stdout" || cfg.Output == "both" {
+		stdoutCore := zapcore.NewCore(encoder, zapcore.AddSync(os.Stdout), level)
+		cores = append(cores, stdoutCore)
+	}
+
+	// Output to file
+	if cfg.Output == "file" || cfg.Output == "both" {
+		if cfg.FilePath == "" {
+			cfg.FilePath = "logs/app.log"
+		}
+
+		// Lumberjack for log rotation
+		writer := &lumberjack.Logger{
+			Filename:   cfg.FilePath,
+			MaxSize:    cfg.MaxSize,
+			MaxBackups: cfg.MaxBackups,
+			MaxAge:     cfg.MaxAge,
+			Compress:   cfg.Compress,
+		}
+
+		fileCore := zapcore.NewCore(encoder, zapcore.AddSync(writer), level)
+		cores = append(cores, fileCore)
+	}
+
+	// Combine cores
+	if len(cores) > 1 {
+		core = zapcore.NewTee(cores...)
+	} else if len(cores) == 1 {
+		core = cores[0]
+	} else {
+		// Default to stdout
+		core = zapcore.NewCore(encoder, zapcore.AddSync(os.Stdout), level)
+	}
+
+	Logger = zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
+	return nil
+}
+
+// GetLogger returns the logger instance
+func GetLogger() *zap.Logger {
+	if Logger == nil {
+		// Initialize with default config if not initialized
+		cfg := config.LoggerConfig{
+			Level:  "info",
+			Format: "json",
+			Output: "stdout",
+		}
+		Init(cfg)
+	}
+	return Logger
+}
+

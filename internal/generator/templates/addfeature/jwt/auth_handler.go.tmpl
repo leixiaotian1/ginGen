@@ -1,0 +1,122 @@
+package handler
+
+import (
+	"net/http"
+
+	"{{.ModulePath}}/internal/config"
+	"{{.ModulePath}}/internal/utils/jwt"
+	"github.com/gin-gonic/gin"
+)
+
+// LoginRequest represents login request
+type LoginRequest struct {
+	Username string `json:"username" binding:"required"`
+	Password string `json:"password" binding:"required"`
+}
+
+// LoginResponse represents login response
+type LoginResponse struct {
+	Token        string `json:"token"`
+	RefreshToken string `json:"refresh_token"`
+	ExpiresIn    int    `json:"expires_in"` // in seconds
+}
+
+// Login handles user login
+// @Summary User login
+// @Description Authenticate user and return JWT token
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body LoginRequest true "Login credentials"
+// @Success 200 {object} LoginResponse
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Router /api/auth/login [post]
+func Login(c *gin.Context) {
+	var req LoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// TODO: Validate username and password against database
+	// This is a placeholder - implement your authentication logic
+	if req.Username == "" || req.Password == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+		return
+	}
+
+	// Get JWT config from context or config
+	// For now, using a default config - you should load from actual config
+	cfg := config.JWTConfig{
+		SecretKey:    "your-secret-key",
+		ExpireHours:  24,
+		RefreshHours: 168,
+		Issuer:       "gin-app",
+	}
+
+	// Generate tokens
+	token, err := jwt.GenerateToken("user-id-123", req.Username, cfg)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+		return
+	}
+
+	refreshToken, err := jwt.GenerateRefreshToken("user-id-123", cfg)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate refresh token"})
+		return
+	}
+
+	c.JSON(http.StatusOK, LoginResponse{
+		Token:        token,
+		RefreshToken: refreshToken,
+		ExpiresIn:    cfg.ExpireHours * 3600,
+	})
+}
+
+// RefreshToken handles token refresh
+// @Summary Refresh JWT token
+// @Description Refresh access token using refresh token
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param refresh_token body map[string]string true "Refresh token"
+// @Success 200 {object} LoginResponse
+// @Failure 400 {object} map[string]string
+// @Router /api/auth/refresh [post]
+func RefreshToken(c *gin.Context) {
+	var req struct {
+		RefreshToken string `json:"refresh_token" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	claims, err := jwt.ValidateToken(req.RefreshToken)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid refresh token"})
+		return
+	}
+
+	cfg := config.JWTConfig{
+		SecretKey:    "your-secret-key",
+		ExpireHours:  24,
+		RefreshHours: 168,
+		Issuer:       "gin-app",
+	}
+
+	newToken, err := jwt.GenerateToken(claims.UserID, claims.Username, cfg)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+		return
+	}
+
+	c.JSON(http.StatusOK, LoginResponse{
+		Token:     newToken,
+		ExpiresIn: cfg.ExpireHours * 3600,
+	})
+}
+

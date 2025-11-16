@@ -1,0 +1,164 @@
+package upload
+
+import (
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+
+	"{{.ModulePath}}/internal/logger"
+	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
+)
+
+// UploadConfig holds upload configuration
+type UploadConfig struct {
+	MaxSize      int64    // Max file size in bytes
+	AllowedExts  []string // Allowed file extensions
+	UploadDir    string   // Upload directory
+	PublicURL    string   // Public URL prefix
+}
+
+// DefaultUploadConfig returns default upload configuration
+func DefaultUploadConfig() UploadConfig {
+	return UploadConfig{
+		MaxSize:     10 * 1024 * 1024, // 10MB
+		AllowedExts: []string{".jpg", ".jpeg", ".png", ".gif", ".pdf", ".doc", ".docx"},
+		UploadDir:   "uploads",
+		PublicURL:   "/uploads",
+	}
+}
+
+// SaveFile saves an uploaded file
+func SaveFile(c *gin.Context, fieldName string, cfg UploadConfig) (string, error) {
+	file, err := c.FormFile(fieldName)
+	if err != nil {
+		return "", fmt.Errorf("failed to get file: %w", err)
+	}
+
+	// Check file size
+	if file.Size > cfg.MaxSize {
+		return "", fmt.Errorf("file size exceeds maximum allowed size")
+	}
+
+	// Check file extension
+	ext := strings.ToLower(filepath.Ext(file.Filename))
+	allowed := false
+	for _, allowedExt := range cfg.AllowedExts {
+		if ext == allowedExt {
+			allowed = true
+			break
+		}
+	}
+	if !allowed {
+		return "", fmt.Errorf("file extension not allowed")
+	}
+
+	// Create upload directory if not exists
+	if err := os.MkdirAll(cfg.UploadDir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create upload directory: %w", err)
+	}
+
+	// Generate unique filename
+	filename := fmt.Sprintf("%d_%s", time.Now().Unix(), file.Filename)
+	filepath := filepath.Join(cfg.UploadDir, filename)
+
+	// Save file
+	if err := c.SaveUploadedFile(file, filepath); err != nil {
+		return "", fmt.Errorf("failed to save file: %w", err)
+	}
+
+	logger.GetLogger().Info("File uploaded successfully",
+		zap.String("filename", filename),
+		zap.String("original", file.Filename),
+		zap.Int64("size", file.Size),
+	)
+
+	return filepath, nil
+}
+
+// SaveMultipleFiles saves multiple uploaded files
+func SaveMultipleFiles(c *gin.Context, fieldName string, cfg UploadConfig) ([]string, error) {
+	form, err := c.MultipartForm()
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse multipart form: %w", err)
+	}
+
+	files := form.File[fieldName]
+	if len(files) == 0 {
+		return nil, fmt.Errorf("no files uploaded")
+	}
+
+	var savedFiles []string
+	for _, file := range files {
+		// Check file size
+		if file.Size > cfg.MaxSize {
+			continue
+		}
+
+		// Check file extension
+		ext := strings.ToLower(filepath.Ext(file.Filename))
+		allowed := false
+		for _, allowedExt := range cfg.AllowedExts {
+			if ext == allowedExt {
+				allowed = true
+				break
+			}
+		}
+		if !allowed {
+			continue
+		}
+
+		// Create upload directory if not exists
+		if err := os.MkdirAll(cfg.UploadDir, 0755); err != nil {
+			continue
+		}
+
+		// Generate unique filename
+		filename := fmt.Sprintf("%d_%s", time.Now().UnixNano(), file.Filename)
+		filepath := filepath.Join(cfg.UploadDir, filename)
+
+		// Open source file
+		src, err := file.Open()
+		if err != nil {
+			continue
+		}
+		defer src.Close()
+
+		// Create destination file
+		dst, err := os.Create(filepath)
+		if err != nil {
+			continue
+		}
+		defer dst.Close()
+
+		// Copy file
+		if _, err := io.Copy(dst, src); err != nil {
+			continue
+		}
+
+		savedFiles = append(savedFiles, filepath)
+	}
+
+	return savedFiles, nil
+}
+
+// UploadHandler handles file upload
+func UploadHandler(cfg UploadConfig) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		filepath, err := SaveFile(c, "file", cfg)
+		if err != nil {
+			c.JSON(400, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(200, gin.H{
+			"message":  "File uploaded successfully",
+			"filepath": filepath,
+			"url":      cfg.PublicURL + "/" + filepath,
+		})
+	}
+}
+

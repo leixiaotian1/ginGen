@@ -1,0 +1,55 @@
+package hotreload
+
+import (
+	"os"
+	"os/signal"
+	"syscall"
+
+	"{{.ModulePath}}/internal/config"
+	"{{.ModulePath}}/internal/logger"
+	"github.com/fsnotify/fsnotify"
+	"github.com/spf13/viper"
+	"go.uber.org/zap"
+)
+
+// WatchConfig watches for configuration file changes and reloads
+func WatchConfig(cfgPath string, onReload func(*config.Config)) error {
+	viper.WatchConfig()
+	viper.OnConfigChange(func(e fsnotify.Event) {
+		logger.GetLogger().Info("Configuration file changed, reloading...",
+			zap.String("file", e.Name),
+		)
+
+		var newConfig config.Config
+		if err := viper.Unmarshal(&newConfig); err != nil {
+			logger.GetLogger().Error("Failed to reload configuration",
+				zap.Error(err),
+			)
+			return
+		}
+
+		if onReload != nil {
+			onReload(&newConfig)
+		}
+
+		logger.GetLogger().Info("Configuration reloaded successfully")
+	})
+
+	return nil
+}
+
+// SetupGracefulShutdown sets up graceful shutdown handling
+func SetupGracefulShutdown(onShutdown func()) {
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		<-quit
+		logger.GetLogger().Info("Shutting down server...")
+		if onShutdown != nil {
+			onShutdown()
+		}
+		os.Exit(0)
+	}()
+}
+

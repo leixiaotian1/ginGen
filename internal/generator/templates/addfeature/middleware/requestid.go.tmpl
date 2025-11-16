@@ -1,0 +1,12 @@
+package middleware
+
+import (
+	"github.com/gin-contrib/requestid"
+	"github.com/gin-gonic/gin"
+)
+
+// RequestIDMiddleware adds a unique request ID to each request
+func RequestIDMiddleware() gin.HandlerFunc {
+	return requestid.New()
+}
+
