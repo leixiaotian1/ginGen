@@ -5,14 +5,20 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
+	"github.com/leixiaotian1/ginGen/internal/feature"
 	"github.com/leixiaotian1/ginGen/internal/generator"
+	"github.com/leixiaotian1/ginGen/internal/preset"
 	"github.com/leixiaotian1/ginGen/internal/utils"
 
 	"github.com/spf13/cobra"
 )
 
 var modulePath string
+var newFeatures string
+var newPreset string
+var newTemplateRoot string
 
 var newCmd = &cobra.Command{
 	Use:   "new <project_name>",
@@ -23,45 +29,86 @@ var newCmd = &cobra.Command{
 		targetModulePath := modulePath
 
 		if targetModulePath == "" {
-			// Default module path, e.g., "project_name" or prompt user for github.com/user/project
-			// For MVP, we'll use projectName directly. Consider making this more robust later.
-			targetModulePath = projectName
-			fmt.Printf("Module path not specified, defaulting to: %s\n", targetModulePath)
-			fmt.Println("You can specify a custom module path with --module, e.g., github.com/youruser/yourproject")
+			if d := preset.DefaultModuleOrEmpty(); d != "" {
+				targetModulePath = d
+				fmt.Printf("Using defaultModule from .gingen.yaml: %s\n", targetModulePath)
+			} else {
+				targetModulePath = projectName
+				fmt.Printf("Module path not specified, defaulting to: %s\n", targetModulePath)
+				fmt.Println("You can set defaultModule in .gingen.yaml or use --module, e.g. github.com/youruser/yourproject")
+			}
+		}
+
+		tmplRoot := newTemplateRoot
+		if tmplRoot == "" {
+			if p, err := preset.LoadMerged(); err == nil && p.TemplateRoot != "" {
+				tmplRoot = p.TemplateRoot
+			}
 		}
 
 		fmt.Printf("Creating new Gin project: %s (Module: %s)\n", projectName, targetModulePath)
 
-		// 1. Create project directory
 		if err := os.MkdirAll(projectName, 0755); err != nil {
 			log.Fatalf("Error creating project directory %s: %v", projectName, err)
 		}
 		fmt.Printf("Created project directory: %s\n", projectName)
 
-		// Use absolute path for projectPath for subsequent operations
 		absProjectPath, err := filepath.Abs(projectName)
 		if err != nil {
 			log.Fatalf("Error getting absolute path for %s: %v", projectName, err)
 		}
 
-		// 2. Generate project structure and files from templates
 		templateData := generator.TemplateData{
 			ProjectName: projectName,
 			ModulePath:  targetModulePath,
 		}
-		if err := generator.GenerateProjectStructure(absProjectPath, templateData); err != nil {
+		if err := generator.GenerateProjectWithOptions(absProjectPath, templateData, generator.ProjectGenOptions{
+			Quiet:        false,
+			TemplateRoot: tmplRoot,
+		}); err != nil {
 			log.Fatalf("Error generating project structure: %v", err)
 		}
 
-		// 3. Go mod init (already handled by go.mod.tmpl, but we need to ensure it's a valid module)
-		// The go.mod.tmpl will create the go.mod file.
-		// We'll run `go mod tidy` later to fetch dependencies.
-
-		// 4. Go get Gin (and other initial dependencies if any)
-		// Dependencies are listed in go.mod.tmpl, so `go mod tidy` will fetch them.
 		fmt.Println("Fetching Gin and other initial dependencies (go mod tidy)...")
 		if err := utils.RunCommand(absProjectPath, "go", "mod", "tidy"); err != nil {
 			log.Printf("Warning: 'go mod tidy' failed after initial setup: %v. Please run it manually.", err)
+		}
+
+		featureQueue := collectNewProjectFeatures(newFeatures, newPreset)
+		if len(featureQueue) > 0 {
+			seen := make(map[string]bool)
+			for _, raw := range featureQueue {
+				raw = strings.TrimSpace(raw)
+				if raw == "" {
+					continue
+				}
+				id, err := feature.Normalize(raw)
+				if err != nil {
+					log.Fatalf("Unknown feature %q: %v", raw, err)
+				}
+				if seen[id] {
+					continue
+				}
+				seen[id] = true
+				ctx := &feature.Context{
+					ProjectPath: absProjectPath,
+					Data:        templateData,
+					Opts: feature.ApplyOptions{
+						Quiet:        false,
+						Force:        false,
+						SkipGoGet:    false,
+						TemplateRoot: tmplRoot,
+					},
+				}
+				fmt.Printf("Applying feature: %s\n", id)
+				if err := feature.Apply(ctx, id); err != nil {
+					log.Fatalf("Error applying feature %s: %v", id, err)
+				}
+			}
+			fmt.Println("Running go mod tidy after features...")
+			if err := utils.RunCommand(absProjectPath, "go", "mod", "tidy"); err != nil {
+				log.Printf("Warning: go mod tidy failed: %v", err)
+			}
 		}
 
 		fmt.Println("\nProject", projectName, "created successfully!")
@@ -75,4 +122,29 @@ var newCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(newCmd)
 	newCmd.Flags().StringVarP(&modulePath, "module", "m", "", "Go module path (e.g., github.com/user/project)")
+	newCmd.Flags().StringVar(&newFeatures, "features", "", "comma-separated features to add after creation (e.g. mysql,redis,jwt)")
+	newCmd.Flags().StringVar(&newPreset, "preset", "", "name of preset.features from merged .gingen.yaml (combined with --features)")
+	newCmd.Flags().StringVar(&newTemplateRoot, "template-root", "", "directory overlaying embedded templates (must contain templates/...)")
+}
+
+func collectNewProjectFeatures(commaFeatures, presetName string) []string {
+	var out []string
+	if strings.TrimSpace(commaFeatures) != "" {
+		for _, part := range strings.Split(commaFeatures, ",") {
+			out = append(out, strings.TrimSpace(part))
+		}
+	}
+	if strings.TrimSpace(presetName) == "" {
+		return out
+	}
+	cfg, err := preset.LoadMerged()
+	if err != nil {
+		log.Fatalf("load preset config: %v", err)
+	}
+	p, ok := cfg.Presets[presetName]
+	if !ok {
+		log.Fatalf("Unknown preset %q (define presets.%s in .gingen.yaml)", presetName, presetName)
+	}
+	out = append(out, p.Features...)
+	return out
 }

@@ -29,8 +29,8 @@ func SetupRouter() *gin.Engine {
 	// Determine static file path (works both in development and when installed)
 	// Try multiple possible paths
 	staticPaths := []string{
-		"./static/web",                    // Development: from project root
-		"static/web",                      // Alternative
+		"./static/web",                      // Development: from project root
+		"static/web",                        // Alternative
 		filepath.Join(".", "static", "web"), // Cross-platform
 	}
 
@@ -74,4 +74,3 @@ func SetupRouter() *gin.Engine {
 
 	return router
 }
-

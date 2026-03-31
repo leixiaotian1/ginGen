@@ -18,8 +18,13 @@ type TemplateData struct {
 	// Add other fields as needed for specific templates
 }
 
-// CreateFileFromTemplate generates a file from an embedded template.
+// CreateFileFromTemplate generates a file from an embedded template (prints progress to stdout).
 func CreateFileFromTemplate(fsys fs.FS, templatePath, outputPath string, data interface{}) error {
+	return CreateFileFromTemplateQuiet(fsys, templatePath, outputPath, data, false)
+}
+
+// CreateFileFromTemplateQuiet generates a file from a template; if quiet is true, no stdout progress.
+func CreateFileFromTemplateQuiet(fsys fs.FS, templatePath, outputPath string, data interface{}, quiet bool) error {
 	// Ensure the template path uses forward slashes, as expected by embed.FS
 	fsTemplatePath := strings.ReplaceAll(templatePath, "\\", "/")
 
@@ -54,12 +59,42 @@ func CreateFileFromTemplate(fsys fs.FS, templatePath, outputPath string, data in
 		return fmt.Errorf("failed to execute template for %s: %w", outputPath, err)
 	}
 
-	fmt.Printf("Generated file: %s\n", outputPath)
+	if !quiet {
+		fmt.Printf("Generated file: %s\n", outputPath)
+	}
 	return nil
 }
 
 // GenerateProjectStructure creates the initial project files and directories.
 func GenerateProjectStructure(projectPath string, data TemplateData) error {
+	return GenerateProjectWithOptions(projectPath, data, ProjectGenOptions{Quiet: false})
+}
+
+// ProjectGenOptions configures new-project generation.
+type ProjectGenOptions struct {
+	Quiet        bool
+	TemplateRoot string // optional OS path; overlays embedded templates/addfeature & newproject paths
+}
+
+// GenerateProjectWithOptions creates the initial project (optional template overlay).
+func GenerateProjectWithOptions(projectPath string, data TemplateData, o ProjectGenOptions) error {
+	return generateProjectInternal(projectPath, data, o)
+}
+
+// GenerateProjectStructureQuiet creates the initial project; quiet suppresses per-file and mkdir logs.
+func GenerateProjectStructureQuiet(projectPath string, data TemplateData, quiet bool) error {
+	return generateProjectInternal(projectPath, data, ProjectGenOptions{Quiet: quiet})
+}
+
+func templateFSForRoot(templateRoot string) fs.FS {
+	if templateRoot == "" {
+		return AllTemplatesFS
+	}
+	return OverlayFS{Primary: os.DirFS(templateRoot), Secondary: AllTemplatesFS}
+}
+
+func generateProjectInternal(projectPath string, data TemplateData, o ProjectGenOptions) error {
+	fsys := templateFSForRoot(o.TemplateRoot)
 	// Define files to be generated with their template paths and output paths
 	filesToGenerate := []struct {
 		templatePath string
@@ -77,7 +112,7 @@ func GenerateProjectStructure(projectPath string, data TemplateData) error {
 
 	for _, f := range filesToGenerate {
 		fullOutputPath := filepath.Join(projectPath, f.outputPath)
-		err := CreateFileFromTemplate(AllTemplatesFS, f.templatePath, fullOutputPath, data)
+		err := CreateFileFromTemplateQuiet(fsys, f.templatePath, fullOutputPath, data, o.Quiet)
 		if err != nil {
 			return err
 		}
@@ -90,5 +125,5 @@ func GenerateProjectStructure(projectPath string, data TemplateData) error {
 		"internal/middleware",
 		"pkg", // Optional but good to have
 	}
-	return utils.CreateDirs(projectPath, dirsToCreate...)
+	return utils.CreateDirsQuiet(projectPath, o.Quiet, dirsToCreate...)
 }

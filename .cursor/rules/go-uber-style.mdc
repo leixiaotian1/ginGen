@@ -1,0 +1,40 @@
+---
+description: Go 代码遵循 uber-go 风格与工程实践（ginGen）
+globs: "**/*.go"
+alwaysApply: false
+---
+
+# Go 规范（Uber Go Style Guide）
+
+对齐 [Uber Go Style Guide](https://github.com/uber-go/guide/blob/master/style.md) 的常见要求。
+
+## 错误
+
+- 不忽略 `error`；必须忽略时用 `_ = x` 并注释原因。
+- 返回时用 `fmt.Errorf("...: %w", err)` 保留因果；避免 `errors.New(err.Error())`。
+- 库与内部包避免 `panic`；失败在边界返回 `error`。
+
+## 命名与类型
+
+- 导出标识符需简短 godoc；接收器名一致（如 `c`），不用 `this`。
+- 用 `any` 替代 `interface{}`；包名小写、短、无下划线；避免空洞的 `util` 包。
+
+## 接口与并发
+
+- 接口由**消费者**定义且保持最小；需要取消时传 `context.Context`，勿长期塞进 struct。
+- 共享状态用 mutex 或 channel；不在 `init` 里起 goroutine。
+
+## 本仓库
+
+- Feature 逻辑放在 `internal/feature`，勿在 `cmd` / `internal/web` 重复实现。
+- 嵌入模板路径用 `/`；错误信息带上相关路径。
+
+```go
+// ✅
+f, err := os.Open(p)
+if err != nil {
+	return fmt.Errorf("open %q: %w", p, err)
+}
+```
+
+提交前：`gofmt`、`go vet ./...`、`go test ./...`。

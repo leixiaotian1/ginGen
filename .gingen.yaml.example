@@ -1,0 +1,13 @@
+# Copy to ~/.gingen.yaml or <project>/.gingen.yaml (project overrides home).
+
+defaultModule: github.com/example/myapp
+
+# Optional: directory that mirrors embedded layout under templates/
+# templateRoot: /absolute/path/to/my-gingen-templates
+
+presets:
+  api:
+    features:
+      - mysql
+      - redis
+      - jwt

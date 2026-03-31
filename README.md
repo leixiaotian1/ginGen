@@ -15,7 +15,8 @@
 
 - 🛠 一键生成Gin项目基础结构
 - 🌐 **Web界面** - 可视化选择模块，类似 Spring Initializr
-- 🧩 模块化添加组件（当前支持MySQL）
+- 🧩 模块化添加组件（MySQL、PostgreSQL、Redis、Kafka、JWT、日志、Swagger 等）
+- 📋 用户级/项目级 `.gingen.yaml` 预设（默认 module、模板覆盖目录）
 - 📁 符合Go标准项目布局
 - ⚡ 自动依赖管理
 
@@ -61,11 +62,47 @@ ginGen new <project_name> --module <module_path>
 # 示例
 ginGen new myapp
 ginGen new myapp --module github.com/yourname/myapp
+
+# 创建时一次性勾选功能（逗号分隔）
+ginGen new myapp --module github.com/yourname/myapp --features mysql,redis,jwt
+
+# 使用 .gingen.yaml 中的 presets.<name>.features
+ginGen new myapp --preset api
 ```
+
+#### 用户配置（`.gingen.yaml`）
+
+可在用户目录或项目根目录放置 `.gingen.yaml`（后者覆盖前者），例如：
+
+```yaml
+defaultModule: github.com/yourname/yourapp
+templateRoot: /path/to/custom-gingen-templates   # 目录内需包含与内置一致的 templates/... 布局
+presets:
+  api:
+    features: [mysql, redis, jwt]
+```
+
+- `defaultModule`：省略 `new --module` 时使用。  
+- `templateRoot`：覆盖/扩展嵌入模板（与 `--template-root` 相同语义）。  
+- `presets`：为后续扩展保留，可在文档中组合 `add` 使用。
+
+#### 版本与构建信息
+
+```bash
+ginGen version
+```
+
+发布构建可通过 `-ldflags` 注入版本，参见根目录 `Makefile` 与 `CONTRIBUTING.md`。
 
 #### 添加功能模块
 ```bash
 ginGen add <feature>
+
+# 严格模式（默认）：go get / go mod tidy 失败会退出；可加 --force 仅警告并继续
+ginGen add mysql --force
+
+# 使用自定义模板根目录（同 .gingen.yaml 的 templateRoot）
+ginGen add swagger --template-root /path/to/templates
 
 # 示例（在项目目录内执行）
 cd myapp
@@ -252,15 +289,17 @@ kafka:
 - [x] Prometheus监控
 - [x] 任务调度器
 - [x] 文件上传功能
-- [ ] 用户自定义模板
+- [x] 用户自定义模板（`templateRoot` / `--template-root` 覆盖嵌入模板）
 - [ ] MongoDB支持
 - [ ] RabbitMQ支持
 
 ## 贡献指南
-欢迎提交Issue和PR！请确保：
-1. 遵循Go代码规范
-2. 添加对应的测试用例
-3. 更新相关文档
+
+详见 [CONTRIBUTING.md](CONTRIBUTING.md)。欢迎提交 Issue 和 PR，请确保：
+
+1. `gofmt`、`go vet ./...`、`go test ./...` 通过（与 CI 一致）
+2. 新功能在 `internal/feature` 注册并保持 CLI / Web 行为一致
+3. 更新相关文档与 [`docs/BASELINE_REGRESSION.md`](docs/BASELINE_REGRESSION.md)（如有行为变更）
 
 ## 许可证
 [MIT License](LICENSE)

@@ -1,0 +1,30 @@
+# See https://goreleaser.com
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    main: .
+    binary: ginGen
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/leixiaotian1/ginGen/internal/version.Version={{.Version}}
+      - -X github.com/leixiaotian1/ginGen/internal/version.Commit={{.Commit}}
+      - -X github.com/leixiaotian1/ginGen/internal/version.BuildDate={{.Date}}
+
+archives:
+  - formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]

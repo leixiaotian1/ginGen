@@ -32,12 +32,19 @@ func RunCommandSilent(workingDir string, name string, args ...string) error {
 
 // CreateDirs creates necessary directories.
 func CreateDirs(basePath string, dirs ...string) error {
+	return CreateDirsQuiet(basePath, false, dirs...)
+}
+
+// CreateDirsQuiet creates directories; when quiet is false, logs each path (same as CreateDirs).
+func CreateDirsQuiet(basePath string, quiet bool, dirs ...string) error {
 	for _, dir := range dirs {
 		fullPath := filepath.Join(basePath, dir)
 		if err := os.MkdirAll(fullPath, 0755); err != nil {
 			return fmt.Errorf("failed to create directory %s: %w", fullPath, err)
 		}
-		fmt.Printf("Created directory: %s\n", fullPath)
+		if !quiet {
+			fmt.Printf("Created directory: %s\n", fullPath)
+		}
 	}
 	return nil
 }
